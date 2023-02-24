@@ -4,7 +4,7 @@ Jorge Caballeros Pérez
 Laboratorio A
 Implementación de programa el cual recibe una ER y como resultado genera AFN con sus estados de aceptación y transiciones correspondientes.
 """
-import graphviz
+import re
 from graphviz import Digraph
 from collections import deque
 
@@ -16,22 +16,22 @@ class Regex:
         self.postfixLists = self.listPostfix()
 
     def infixToPostfix(self, expression):
-        # collection of Operators
+
         Operators = set(['+', '-', '*', '/', '(', ')', '^'])
-        # dictionary having priorities of Operators
+
         Priority = {'+': 1, '-': 1, '*': 2, '/': 2, '^': 3}
 
-        stack = []  # initialization of empty stack
+        stack = []
 
         output = ''
 
         for character in expression:
 
-            if character not in Operators:  # if an operand append in postfix expression
+            if character not in Operators:
 
                 output += character
 
-            elif character == '(':  # else Operators push onto stack
+            elif character == '(':
 
                 stack.append('(')
 
@@ -74,57 +74,6 @@ class State:
 class NFA:
     def __init__(self, postfix) -> None:
         self.postFix = postfix
-
-    def postfix_to_nfa(self):
-        postfix = self.postFix
-        nfa_stack = deque()
-        alphabet = set(postfix) - set('*|.')
-
-        for ch in postfix:
-            if ch in alphabet:
-                nfa = {'start': 1, 'accept': 2, 'transitions': [(1, ch, 2)]}
-                nfa_stack.append(nfa)
-            elif ch == '*':
-                nfa = nfa_stack.pop()
-                nfa['transitions'].append((nfa['accept'], '', nfa['start']))
-                nfa['transitions'].append((nfa['start'], '', nfa['accept']))
-                nfa_stack.append(nfa)
-            elif ch == '|':
-                nfa2 = nfa_stack.pop()
-                nfa1 = nfa_stack.pop()
-                start = 1
-                accept = max(nfa1['accept'], nfa2['accept']) + 1
-                transitions = nfa1['transitions'] + nfa2['transitions']
-                transitions.append((start, '', nfa1['start']))
-                transitions.append((start, '', nfa2['start']))
-                transitions.append((nfa1['accept'], '', accept))
-                transitions.append((nfa2['accept'], '', accept))
-                nfa = {'start': start, 'accept': accept,
-                       'transitions': transitions}
-                nfa_stack.append(nfa)
-            elif ch == '.':
-                nfa2 = nfa_stack.pop()
-                nfa1 = nfa_stack.pop()
-                transitions = nfa1['transitions'] + nfa2['transitions']
-                accept_states = [
-                    state for state in nfa2['transitions'] if state[2] == nfa2['accept']]
-                for state in accept_states:
-                    transitions.append((state[0], '', nfa2['start']))
-                nfa = {
-                    'start': nfa1['start'], 'accept': nfa2['accept'], 'transitions': transitions}
-                nfa_stack.append(nfa)
-
-        nfa = nfa_stack.pop()
-        dot = graphviz.Digraph()
-        dot.attr('node', shape='circle')
-        dot.node('S', style='invis')
-        dot.node('A', shape='doublecircle')
-        dot.edge('S', str(nfa['start']))
-        for transition in nfa['transitions']:
-            dot.edge(str(transition[0]), str(
-                transition[2]), label=transition[1])
-        dot.edge(str(nfa['accept']), 'A', style='dashed')
-        return dot
 
 
 def postfix_to_nfa(postfix):
