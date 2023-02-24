@@ -4,103 +4,128 @@ Jorge Caballeros Pérez
 Laboratorio A
 Implementación de programa el cual recibe una ER y como resultado genera AFN con sus estados de aceptación y transiciones correspondientes.
 """
+import graphviz
 from graphviz import Digraph
+from collections import deque
+
 
 class Regex:
     def __init__(self, regex) -> None:
         self.infix = regex
-        self.postfix = self.infix_to_postfix()
+        self.postfix = self.infixToPostfix(self.infix)
         self.postfixLists = self.listPostfix()
-        
-    def infix_to_postfix(self):
-        infix =  self.infix
-        # Asignar la precedencia de los operadores
-        precedencia = {'?': 4,'*': 3, '+': 2, '~': 1}
-        # Inicializar una pila para los operadores y una lista para la salida
-        operadores = []
-        salida = []
-        # Separar la expresión en una lista de tokens
-        tokens = list(infix)
-        # Inicializar un contador de paréntesis
-        contador_parentesis = 0
-        # Iterar sobre cada token en la lista
-        for token in tokens:
-            # Si el token es un operando, añadirlo a la salida
-            if token.isalnum():
-                salida.append(token)
-            # Si el token es un operador
-            elif token in precedencia:
-                # Mientras haya operadores en la pila y el operador en la cima tenga mayor precedencia
-                while operadores and operadores[-1] != '(' and precedencia[operadores[-1]] >= precedencia[token]:
-                    # Añadir el operador de la cima de la pila a la salida
-                    salida.append(operadores.pop())
-                # Añadir el operador a la pila
-                operadores.append(token)
-            # Si el token es un paréntesis de apertura
-            elif token == '(':
-                # Añadirlo a la pila de operadores
-                operadores.append(token)
-                # Incrementar el contador de paréntesis
-                contador_parentesis += 1
-            # Si el token es un paréntesis de cierre
-            elif token == ')':
-                # Si hay un paréntesis de apertura correspondiente en la pila de operadores
-                if '(' in operadores:
-                    # Mientras no se encuentre un paréntesis de apertura en la pila de operadores
-                    while operadores and operadores[-1] != '(':
-                        # Añadir el operador de la cima de la pila a la salida
-                        salida.append(operadores.pop())
-                    # Remover el paréntesis de apertura de la pila de operadores
-                    operadores.pop()
-                    # Decrementar el contador de paréntesis
-                    contador_parentesis -= 1
-                # Si no hay un paréntesis de apertura correspondiente, lanzar una excepción
-                else:
-                    raise ValueError('Los paréntesis no están balanceados')
-        # Si el contador de paréntesis no es cero, lanzar una excepción
-        if contador_parentesis != 0:
-            raise ValueError('Los paréntesis no están balanceados')
-        # Mientras queden operadores en la pila, añadirlos a la salida
-        while operadores:
-            salida.append(operadores.pop())
-        # Unir la lista de salida en una cadena y devolverla
-        return ''.join(salida)
+
+    def infixToPostfix(self, expression):
+        # collection of Operators
+        Operators = set(['+', '-', '*', '/', '(', ')', '^'])
+        # dictionary having priorities of Operators
+        Priority = {'+': 1, '-': 1, '*': 2, '/': 2, '^': 3}
+
+        stack = []  # initialization of empty stack
+
+        output = ''
+
+        for character in expression:
+
+            if character not in Operators:  # if an operand append in postfix expression
+
+                output += character
+
+            elif character == '(':  # else Operators push onto stack
+
+                stack.append('(')
+
+            elif character == ')':
+
+                while stack and stack[-1] != '(':
+
+                    output += stack.pop()
+
+                stack.pop()
+
+            else:
+
+                while stack and stack[-1] != '(' and Priority[character] <= Priority[stack[-1]]:
+
+                    output += stack.pop()
+
+                stack.append(character)
+
+        while stack:
+
+            output += stack.pop()
+
+        return output
+
+    # Función que convierte una expresión regular en formato postfix a una lista.
 
     def listPostfix(self):
         return [i for i in self.postfix]
-    
+
+
 class State:
     """Representa un estado en un AFN."""
+
     def __init__(self, label=None, edges=None):
         self.label = label
         self.edges = edges or []
 
+
 class NFA:
-    """Representa un Autómata Finito No Determinístico."""
-    def __init__(self, start=None, end=None):
-        self.start = start
-        self.end = end
+    def __init__(self, postfix) -> None:
+        self.postFix = postfix
 
-    def concatenate(self, other):
-        """Concatena este AFN con otro AFN."""
-        self.end.edges.append(other.start)
-        self.end = other.end
+    def postfix_to_nfa(self):
+        postfix = self.postFix
+        nfa_stack = deque()
+        alphabet = set(postfix) - set('*|.')
 
-    def alternate(self, other):
-        """Realiza la operación alternación en este AFN y otro AFN."""
-        new_start = State()
-        new_start.edges = [self.start, other.start]
-        new_end = State()
-        self.end.edges.append(new_end)
-        other.end.edges.append(new_end)
-        self.start, self.end = new_start, new_end
+        for ch in postfix:
+            if ch in alphabet:
+                nfa = {'start': 1, 'accept': 2, 'transitions': [(1, ch, 2)]}
+                nfa_stack.append(nfa)
+            elif ch == '*':
+                nfa = nfa_stack.pop()
+                nfa['transitions'].append((nfa['accept'], '', nfa['start']))
+                nfa['transitions'].append((nfa['start'], '', nfa['accept']))
+                nfa_stack.append(nfa)
+            elif ch == '|':
+                nfa2 = nfa_stack.pop()
+                nfa1 = nfa_stack.pop()
+                start = 1
+                accept = max(nfa1['accept'], nfa2['accept']) + 1
+                transitions = nfa1['transitions'] + nfa2['transitions']
+                transitions.append((start, '', nfa1['start']))
+                transitions.append((start, '', nfa2['start']))
+                transitions.append((nfa1['accept'], '', accept))
+                transitions.append((nfa2['accept'], '', accept))
+                nfa = {'start': start, 'accept': accept,
+                       'transitions': transitions}
+                nfa_stack.append(nfa)
+            elif ch == '.':
+                nfa2 = nfa_stack.pop()
+                nfa1 = nfa_stack.pop()
+                transitions = nfa1['transitions'] + nfa2['transitions']
+                accept_states = [
+                    state for state in nfa2['transitions'] if state[2] == nfa2['accept']]
+                for state in accept_states:
+                    transitions.append((state[0], '', nfa2['start']))
+                nfa = {
+                    'start': nfa1['start'], 'accept': nfa2['accept'], 'transitions': transitions}
+                nfa_stack.append(nfa)
 
-    def kleene_star(self):
-        """Realiza la operación de cierre de Kleene en este AFN."""
-        new_start, new_end = State(), State()
-        new_start.edges = [self.start]
-        self.end.edges.extend([self.start, new_end])
-        self.start, self.end = new_start, new_end
+        nfa = nfa_stack.pop()
+        dot = graphviz.Digraph()
+        dot.attr('node', shape='circle')
+        dot.node('S', style='invis')
+        dot.node('A', shape='doublecircle')
+        dot.edge('S', str(nfa['start']))
+        for transition in nfa['transitions']:
+            dot.edge(str(transition[0]), str(
+                transition[2]), label=transition[1])
+        dot.edge(str(nfa['accept']), 'A', style='dashed')
+        return dot
+
 
 def postfix_to_nfa(postfix):
     """Convierte una expresión regular en formato postfix a un AFN."""
@@ -124,6 +149,7 @@ def postfix_to_nfa(postfix):
             stack.append(nfa)
     return stack.pop()
 
+
 def visualize_nfa(nfa):
     """Visualiza un AFN utilizando Graphviz."""
     graph = Digraph()
@@ -142,13 +168,8 @@ def visualize_nfa(nfa):
         graph.edge(str(start.label), str(end.label), label='ε')
     return graph
 
-regex = Regex('a?b')
-postfix = regex.postfix
-nfa = postfix_to_nfa(postfix)
-print(f"Postfix: {postfix}")
 
-graph = visualize_nfa(nfa)
-graph.render('nfa.gv', view=True)
-
-
-
+regex = Regex('ab|*cd.|')
+print(f"Infix: {regex.infix}\nPostfix: {regex.postfix}")
+nfa = NFA.postfix_to_nfa(regex.postfix)
+nfa.render('nfa')
