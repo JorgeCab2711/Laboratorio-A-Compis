@@ -60,6 +60,7 @@ class Regex:
                 closeParenthesis += 1
 
         if openParenthesis == closeParenthesis:
+
             return True
         else:
             raise ValueError("Error: The number of parenthesis is not equal")
