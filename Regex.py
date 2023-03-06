@@ -1,14 +1,15 @@
 class Regex:
     def __init__(self, regex):
         self.infix = regex
+        self.checkNumParenthesis()
         self.postfix = self.infixToPostfix()
 
     def infixToPostfix(self):
         expression = self.infix
-        self.checkNumParenthesis()
-        Operators = set(['+', '-', '*', '/', '(', ')', '^','%', '?'])
 
-        Priority = {'+': 1, '-': 1, '*': 2, '/': 2, '^': 3, '%': 3, '?': 3}
+        Operators = set(['+', '-', '*', '/', '(', ')', '^', '$', '?'])
+
+        Priority = {'+': 1, '-': 1, '*': 2, '/': 2, '^': 3, '$': 3, '?': 3}
 
         stack = []
 
@@ -47,17 +48,17 @@ class Regex:
         return output
 
     def checkNumParenthesis(self):
-        
+
         openParenthesis = 0
         closeParenthesis = 0
         infix = self.infix
-        
+
         for i in infix:
             if i == '(':
                 openParenthesis += 1
             elif i == ')':
                 closeParenthesis += 1
-        
+
         if openParenthesis == closeParenthesis:
             return True
         else:

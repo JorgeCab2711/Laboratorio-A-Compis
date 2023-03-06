@@ -8,60 +8,75 @@ Implementación de programa el cual recibe una ER y como resultado genera AFN co
 import graphviz
 from collections import deque
 from Regex import Regex as re
-from Node import Node 
 
 
 class AFN:
     def __init__(self, postfix):
-        self.operators = ['+', '-', '*', '/', '(', ')', '^','%', '?']
+        self.state_count = 0
+        self.next_state = 1
+        self.initial_state = ''
+        self.final_state = ''
+        self.operators = ['+', '-', '*', '/', '(', ')', '^', '$', '?']
         self.postfix = postfix
         self.result = self.createAFN(postfix)
-        self.initial_state = self.result[0]['state']
-        self.final_state = self.result[-1]['state']
-        
+
     def concat(self, afn1, afn2):
-        
+
         new_afn = []
-        afn2['state'] = afn1['next_state']
-        afn2['next_state'] = 'Final'
-        new_afn.append(afn1)
-        new_afn.append(afn2)
-        self.final_state = afn2['state']
-        self.initial_state = afn1['state']
-        
-        
-        
-        
-    
+
+        if type(afn1) == dict and type(afn2) == dict:
+            self.state_count += 1
+            self.next_state += 1
+            afn2['state'] = afn1['next_state']
+            afn2['next_state'] = f'S{self.next_state}'
+            new_afn.append(afn1)
+            new_afn.append(afn2)
+            self.initial_state = afn1['state']
+            self.final_state = afn2['next_state']
+
+        elif type(afn2) == list and type(afn1) == dict:
+            self.state_count += 1
+            self.next_state += 1
+            # changing next state of prev concatenaded afn
+            afn1['state'] = f'S{self.state_count}'
+            afn2[-1]['next_state'] = afn1['state']
+            afn1['next_state'] = f'S{self.next_state}'
+            self.final_state = afn1['next_state']
+            afn2.append(afn1)
+            new_afn = afn2.copy()
+        print(new_afn)
+        return new_afn
+
     def createAFN(self, postfix):
         stack = []
-        state_count = 0
-        next_state = 1
+
         for symbol in postfix:
-            if symbol not in self.operators and symbol.isalpha() or symbol.isnumeric(): #habdle simple afn
-                simple_afn = {'state': f'S{state_count}','symbol':symbol, 'next_state': f'S{next_state}'}
+            # hadle simple afn
+            if symbol not in self.operators and symbol.isalpha() or symbol.isnumeric():
+                simple_afn = {'state': f'S{self.state_count}',
+                              'symbol': symbol, 'next_state': f'S{self.next_state}'
+                              }
                 stack.append(simple_afn)
-            elif symbol == '*': #Kleene
+
+            # Concatenación
+            elif symbol == '$':
+                afn1 = stack.pop()
+                afn2 = stack.pop()
+                new_afn = self.concat(afn1, afn2)
+                stack.append(new_afn)
+
+            elif symbol == '*':  # Kleene
                 break
-            elif symbol == '%': #Concatenación
-                self.concat(stack[-2],stack[-1])
-            elif symbol == '|': #Union
+
+            elif symbol == '|':  # Union
                 break
-            elif symbol == ' ε ': #Epsilon
+            elif symbol == ' ε ':  # Epsilon
                 break
-            elif symbol == '?': #Opcional
+            elif symbol == '?':  # Opcional
                 break
         return stack
-    
-    
-                
-        
-        
 
 
-
-regex = re('a%b')
+regex = re('a$b$c$d')
+print(regex.postfix)
 nfa = AFN(regex.postfix)
-
-# print(f"Infix: {regex.infix}\nPostfix: {regex.postfix}")
-
