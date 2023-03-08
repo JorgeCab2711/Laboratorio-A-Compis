@@ -2,6 +2,8 @@ class Regex:
     def __init__(self, regex):
         self.infix = regex
         self.checkNumParenthesis()
+        self.verifyParenthesesSyntax()
+
         self.postfix = self.infixToPostfix()
 
     def infixToPostfix(self):
@@ -64,3 +66,15 @@ class Regex:
             return True
         else:
             raise ValueError("Error: The number of parenthesis is not equal")
+
+    def verifyParenthesesSyntax(self):
+        infix = self.infix
+        for i in range(len(infix)):
+            if infix[i] == '(' and infix[i + 1] == ')':
+                raise ValueError("Error: Empty parentheses")
+        for i in range(len(infix)):
+            try:
+                if not infix[i].isalpha() and not infix[i + 1].isalpha():
+                    raise ValueError("Error: There are two symbols together")
+            except:
+                pass

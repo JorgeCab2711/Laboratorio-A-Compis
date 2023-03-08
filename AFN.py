@@ -98,7 +98,11 @@ class AFN:
         return stack
 
 
+<<<<<<< Updated upstream
 regex = re('(a$b$c$d)')
+=======
+regex = re('(a+b)')
+>>>>>>> Stashed changes
 print(regex.postfix)
 nfa = AFN(regex.postfix)
 print(f"Initial state: {nfa.initial_state}\nFinal state: {nfa.final_state}")
