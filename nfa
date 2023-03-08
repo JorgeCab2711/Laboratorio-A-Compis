@@ -1,0 +1,10 @@
+// NFA
+digraph {
+	"S-1" [shape=circle]
+	"S-1" -> S0 [label="ε"]
+	"S-1" -> S3 [label="ε"]
+	node [shape=point]
+	"" -> "S-1"
+	node [shape=doublecircle]
+	S3 [shape=doublecircle]
+}

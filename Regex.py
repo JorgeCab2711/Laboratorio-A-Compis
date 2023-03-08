@@ -9,9 +9,9 @@ class Regex:
     def infixToPostfix(self):
         expression = self.infix
 
-        Operators = set(['+', '-', '*', '/', '(', ')', '^', '$', '?'])
+        Operators = set(['+', '-', '*', '|', '(', ')', '^', '$', '?'])
 
-        Priority = {'+': 1, '-': 1, '*': 2, '/': 2, '^': 3, '$': 3, '?': 3}
+        Priority = {'+': 1, '-': 1, '*': 2, '|': 2, '^': 3, '$': 3, '?': 3}
 
         stack = []
 
