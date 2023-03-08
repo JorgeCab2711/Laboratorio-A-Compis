@@ -46,12 +46,23 @@ class AFN:
             # changing next state of prev concatenated afn
             afn1_copy = afn1.copy()  # create a copy of afn1
             afn1_copy['state'] = f'S{self.state_count}'
-            afn2[-1]['next_state'] = afn1_copy['state']
-            afn1_copy['next_state'] = f'S{self.next_state}'
-            self.final_state = afn1_copy['next_state']
+            afn2[-1]['next_state'] = [afn1_copy['state']]
+            afn1_copy['next_state'] =[ f'S{self.next_state}']
+            self.final_state = afn1_copy['next_state'][0]
             afn2.append(afn1_copy)
             new_afn = afn2.copy()
         return new_afn
+
+    def kleene(self, afn):
+        for i in afn:
+            print(i)
+
+    def cleanState(self, afn):
+        for i in afn:
+            if type(i['state']) is list:
+                i['state'] = i['state'][0]
+            
+                
 
     def createAFN(self, postfix):
         stack = []
@@ -60,7 +71,7 @@ class AFN:
             # hadle simple afn
             if symbol not in self.operators and symbol.isalpha() or symbol.isnumeric():
                 simple_afn = {'state': f'S{self.state_count}',
-                              'symbol': symbol, 'next_state': f'S{self.next_state}'
+                              'symbol': symbol, 'next_state': [f'S{self.next_state}']
                               }
                 stack.append(simple_afn)
 
@@ -69,11 +80,13 @@ class AFN:
                 afn1 = stack.pop()
                 afn2 = stack.pop()
                 new_afn = self.concat(afn1, afn2)
+                self.cleanState(new_afn)
                 stack.append(new_afn)
-                print(f'Concatenación: {new_afn}')
+                
 
             elif symbol == '*':  # Kleene
-                break
+                afn = stack.pop(-1)
+                self.kleene(afn)
 
             elif symbol == '|':  # Union
                 break
@@ -85,7 +98,7 @@ class AFN:
         return stack
 
 
-regex = re('(a$b)$(c$d)')
+regex = re('(a$b$c$d)')
 print(regex.postfix)
 nfa = AFN(regex.postfix)
 print(f"Initial state: {nfa.initial_state}\nFinal state: {nfa.final_state}")
