@@ -57,6 +57,8 @@ class AFN:
 
         return new_afn
 
+
+
     # Method that applies the kleene star operator to an afn
     def kleene(self, afn):
         new_afn = []
@@ -82,21 +84,28 @@ class AFN:
         if type(nfa2) is not list:
             nfa2 = [nfa2]
 
-        # next state from last node is itself
-        nfa1[-1]['next_state'] = [nfa1[-1]['state']]
+        
 
         new_initial_state = [{'state': 'S-1',
                              'symbol': 'ε',
                               'next_state': []
                               }]
+        
+        # new_initial_state[0]['next_state'].append(nfa1[0]['state'])
+        # new_initial_state[0]['next_state'].append(nfa2[0]['state'])
+        # new_nfa.append(new_initial_state)
+        # new_nfa.append(nfa1)
+        # new_nfa.append(nfa2)
+        # print(self.state_count)
         print(nfa1)
         print(nfa2)
-        new_initial_state[0]['next_state'].append(nfa1[0]['state'])
-        new_initial_state[0]['next_state'].append(nfa2[0]['state'])
-        new_nfa.append(new_initial_state)
-        new_nfa.append(nfa1)
-        new_nfa.append(nfa2)
-        print(self.state_count)
+        
+        new_final_state = [{'state': f'S{self.state_count}',
+                            'symbol': 'ε',
+                            'next_state': []
+                            }]
+        new_nfa.append(new_final_state)
+        
 
         return new_nfa
 
@@ -114,7 +123,7 @@ class AFN:
                               }
                 stack.append(simple_afn)
 
-                self.state_count = len(stack[0])
+                
 
             # Concatenación
             elif symbol == '$':
@@ -176,7 +185,7 @@ class AFN:
 regex = re('(a|b)')
 print(regex.postfix)
 nfa = AFN(regex.postfix)
-print(f"Initial state: {nfa.initial_state}\nFinal state: {nfa.final_state}")
+# print(f"Initial state: {nfa.initial_state}\nFinal state: {nfa.final_state}")
 print(f'Result:\n')
 headers = ['State', 'Symbol', 'Next State']
 rows = []
@@ -195,5 +204,5 @@ table = tabulate(rows, headers=headers)
 # Print the table
 print(table)
 
-dot = nfa.graphNFA(nfa.result[0])
-dot.render('nfa', format='pdf', view=True)
+# dot = nfa.graphNFA(nfa.result[0])
+# dot.render('nfa', format='pdf', view=True)
