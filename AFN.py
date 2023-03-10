@@ -53,30 +53,21 @@ class AFN:
             self.final_state = afn1_copy['next_state'][0]
             afn2.append(afn1_copy)
             new_afn = afn2.copy()
+
         # Debug the states that are being changed to lists
         for i in new_afn:
             if type(i['state']) == list:
                 i['state'] = i['state'][0]
 
-        return new_afn
+        new_afn = self.normilizeNFADataType(new_afn)
+        self.state_count = len(new_afn)
+        self.next_state = self.state_count + 1
+        self.normilizeConcatNames(new_afn)
 
-    # Method that applies the kleene star operator to an afn
-    def kleene(self, afn):
-        new_afn = []
-        new_initial_state_afn = {'state': 'S-1',
-                                 'symbol': 'ε',
-                                 'next_state': [afn[0]['state']]
-                                 }
-
-        new_final_state_afn = {'state': afn[-1]['next_state'][0],
-                               'symbol': 'ε',
-                               'next_state': [afn[-1]['next_state'][0]]
-                               }
-
-        new_afn.append(afn)
         return new_afn
 
     # Method that applies the union operator to two afns
+
     def union(self, nfa2, nfa1):
         new_nfa = []
 
@@ -90,7 +81,7 @@ class AFN:
                          'symbol': 'ε',
                          'next_state': [nfa1[0]['state'], nfa2[0]['state']]
                          }
-
+        # Epsilon state nfa 1
         new_state_nfa1 = {'state': f'S{self.state_count}',
                           'symbol': 'ε',
                           'next_state': []
@@ -98,6 +89,7 @@ class AFN:
         self.state_count += 1
         self.next_state += 1
 
+        # Epsilon state nfa 2
         new_state_nfa2 = {'state': f'S{self.state_count}',
                           'symbol': 'ε',
                           'next_state': []
@@ -109,7 +101,7 @@ class AFN:
         nfa1[-1]['next_state'] = [new_state_nfa1['state']]
         nfa2[-1]['next_state'] = [new_state_nfa2['state']]
 
-        final_state = {'state': f'SNH',
+        final_state = {'state': 'Sn',
                        'symbol': '',
                        'next_state': []
                        }
@@ -203,8 +195,15 @@ class AFN:
 
         return dict_list
 
+    def normilizeConcatNames(self, nfa):
+        counter = 0
+        for j in nfa:
+            j['state'] = f'S{counter}'
+            j['next_state'] = [f'S{counter+1}']
+            counter += 1
 
-regex = re('(a$b$c|c)')
+
+regex = re('(a$b$c|d|e)')
 print(regex.postfix)
 nfa = AFN(regex.postfix)
 print(f"Initial state: {nfa.initial_state}\nFinal state: {nfa.final_state}")
