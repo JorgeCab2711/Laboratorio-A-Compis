@@ -25,7 +25,7 @@ class AFN:
         self.operators = ['+', '-', '*', '/', '(', ')', '^', '$', '?']
         self.postfix = postfix
         self.result = self.createAFN(postfix)
-        #TODO: fix the initial and final states
+        # TODO: fix the initial and final states
         # self.initial_state = self.result[0][0]['state']
         # self.final_state = self.result[0][-1]['state']
 
@@ -87,43 +87,44 @@ class AFN:
 
         # New initial state for the new nfa
         initial_state = {'state': 'S-1',
-                             'symbol': 'ε',
-                              'next_state': [nfa1[0]['state'], nfa2[0]['state']]
-                              }
-        
+                         'symbol': 'ε',
+                         'next_state': [nfa1[0]['state'], nfa2[0]['state']]
+                         }
+
         new_state_nfa1 = {'state': f'S{self.state_count}',
                           'symbol': 'ε',
                           'next_state': []
                           }
         self.state_count += 1
         self.next_state += 1
-        
+
         new_state_nfa2 = {'state': f'S{self.state_count}',
                           'symbol': 'ε',
                           'next_state': []
                           }
-        
+
         self.state_count += 1
         self.next_state += 1
-        
+
         nfa1[-1]['next_state'] = [new_state_nfa1['state']]
         nfa2[-1]['next_state'] = [new_state_nfa2['state']]
-        new_state_nfa1['next_state'] = ['CHANGE']
-        
-        
-        print(new_state_nfa1)
+
+        final_state = {'state': f'SNH',
+                       'symbol': '',
+                       'next_state': []
+                       }
+
+        new_state_nfa1['next_state'] = [final_state['state']]
+        new_state_nfa2['next_state'] = [final_state['state']]
+
+        nfa1.append(new_state_nfa1)
+        nfa2.append(new_state_nfa2)
         new_nfa.append(initial_state)
-        
-        
-        # final_state = {'state': nfa1[-1]['next_state'][0],
-        #                     'symbol': ' ',
-        #                     'next_state': [f'S{self.next_state}']
-        #                     }
-        
-        # new_nfa.append(final_state)
-        
+        new_nfa.append(nfa2)
+        new_nfa.append(nfa1)
+
         new_nfa = self.normilizeNFADataType(new_nfa)
-        
+
         return new_nfa
 
     # Method that creates the afn from a postfix expression
@@ -163,17 +164,13 @@ class AFN:
                 break
         return stack
 
-        
-        
-
     def graphNFA(self, nfa):
         dot = graphviz.Digraph(comment='NFA', graph_attr={'rankdir': 'LR'})
         try:
             print(type(nfa[0]) != list)
         except:
             nfa = [nfa]
-        
-        
+
         # Add the nodes to the graph
         for transition in nfa:
             dot.node(transition['state'], shape='circle')
@@ -181,7 +178,8 @@ class AFN:
         # Add the transitions to the graph
         for transition in nfa:
             for next_state in transition['next_state']:
-                dot.edge(transition['state'], next_state, label=transition['symbol'])
+                dot.edge(transition['state'], next_state,
+                         label=transition['symbol'])
 
         # Set the start state
         dot.attr('node', shape='point')
@@ -205,7 +203,8 @@ class AFN:
 
         return dict_list
 
-regex = re('(a|b)')
+
+regex = re('(a$b$c|c)')
 print(regex.postfix)
 nfa = AFN(regex.postfix)
 print(f"Initial state: {nfa.initial_state}\nFinal state: {nfa.final_state}")
@@ -213,7 +212,6 @@ print(f'Result:\n')
 # TODO : uncomment this to print the table
 headers = ['State', 'Symbol', 'Next State']
 rows = []
-print(nfa.result[0])
 headers = nfa.result[0][0].keys()
 rows = [d.values() for d in nfa.result[0]]
 print(tabulate(rows, headers=headers))
