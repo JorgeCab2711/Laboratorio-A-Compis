@@ -25,6 +25,9 @@ class AFN:
         self.operators = ['+', '-', '*', '/', '(', ')', '^', '$', '?']
         self.postfix = postfix
         self.result = self.createAFN(postfix)
+        #TODO: fix the initial and final states
+        # self.initial_state = self.result[0][0]['state']
+        # self.final_state = self.result[0][-1]['state']
 
     # method that concatenates two nfas
     def concat(self, afn1, afn2):
@@ -57,8 +60,6 @@ class AFN:
 
         return new_afn
 
-
-
     # Method that applies the kleene star operator to an afn
     def kleene(self, afn):
         new_afn = []
@@ -84,36 +85,51 @@ class AFN:
         if type(nfa2) is not list:
             nfa2 = [nfa2]
 
-        
-
-        new_initial_state = [{'state': 'S-1',
+        # New initial state for the new nfa
+        initial_state = {'state': 'S-1',
                              'symbol': 'ε',
-                              'next_state': []
-                              }]
+                              'next_state': [nfa1[0]['state'], nfa2[0]['state']]
+                              }
         
-        # new_initial_state[0]['next_state'].append(nfa1[0]['state'])
-        # new_initial_state[0]['next_state'].append(nfa2[0]['state'])
-        # new_nfa.append(new_initial_state)
-        # new_nfa.append(nfa1)
-        # new_nfa.append(nfa2)
-        # print(self.state_count)
-        print(nfa1)
-        print(nfa2)
+        new_state_nfa1 = {'state': f'S{self.state_count}',
+                          'symbol': 'ε',
+                          'next_state': []
+                          }
+        self.state_count += 1
+        self.next_state += 1
         
-        new_final_state = [{'state': f'S{self.state_count}',
-                            'symbol': 'ε',
-                            'next_state': []
-                            }]
-        new_nfa.append(new_final_state)
+        new_state_nfa2 = {'state': f'S{self.state_count}',
+                          'symbol': 'ε',
+                          'next_state': []
+                          }
         
-
+        self.state_count += 1
+        self.next_state += 1
+        
+        nfa1[-1]['next_state'] = [new_state_nfa1['state']]
+        nfa2[-1]['next_state'] = [new_state_nfa2['state']]
+        new_state_nfa1['next_state'] = ['CHANGE']
+        
+        
+        print(new_state_nfa1)
+        new_nfa.append(initial_state)
+        
+        
+        # final_state = {'state': nfa1[-1]['next_state'][0],
+        #                     'symbol': ' ',
+        #                     'next_state': [f'S{self.next_state}']
+        #                     }
+        
+        # new_nfa.append(final_state)
+        
+        new_nfa = self.normilizeNFADataType(new_nfa)
+        
         return new_nfa
 
     # Method that creates the afn from a postfix expression
 
     def createAFN(self, postfix):
         stack = []
-
         for symbol in postfix:
             # hadle simple afn
             if symbol not in self.operators and symbol.isalpha() or symbol.isnumeric():
@@ -121,24 +137,21 @@ class AFN:
                               'symbol': symbol,
                               'next_state': [f'S{self.next_state}']
                               }
+                self.state_count += 1
+                self.next_state += 1
                 stack.append(simple_afn)
-
-                
-
             # Concatenación
             elif symbol == '$':
                 afn1 = stack.pop()
                 afn2 = stack.pop()
                 new_afn = self.concat(afn1, afn2)
                 stack.append(new_afn)
-
             # Union
             elif symbol == '|':
                 afn1 = stack.pop()
                 afn2 = stack.pop()
                 new_afn = self.union(afn1, afn2)
                 stack.append(new_afn)
-
             # Kleene
             elif symbol == '*':
                 pass
@@ -148,19 +161,19 @@ class AFN:
             # Opcional
             elif symbol == '?':
                 break
-
-        # TODO set initial and final states
-        # self.initial_state = stack[0][0]['state']
-        # self.final_state = stack[0][-1]['state']
         return stack
 
+        
+        
+
     def graphNFA(self, nfa):
-
-        dot = graphviz.Digraph(comment='NFA')
-
-        if type(nfa[0]) is not dict:
-            nfa = nfa[0]
-
+        dot = graphviz.Digraph(comment='NFA', graph_attr={'rankdir': 'LR'})
+        try:
+            print(type(nfa[0]) != list)
+        except:
+            nfa = [nfa]
+        
+        
         # Add the nodes to the graph
         for transition in nfa:
             dot.node(transition['state'], shape='circle')
@@ -168,8 +181,7 @@ class AFN:
         # Add the transitions to the graph
         for transition in nfa:
             for next_state in transition['next_state']:
-                dot.edge(transition['state'], next_state,
-                         label=transition['symbol'])
+                dot.edge(transition['state'], next_state, label=transition['symbol'])
 
         # Set the start state
         dot.attr('node', shape='point')
@@ -181,28 +193,31 @@ class AFN:
 
         return dot
 
+    def normilizeNFADataType(self, nfa):
+        dict_list = []
+        for element in nfa:
+            if isinstance(element, dict):
+                dict_list.append(element)
+            elif isinstance(element, list):
+                for subelement in element:
+                    if isinstance(subelement, dict):
+                        dict_list.append(subelement)
+
+        return dict_list
 
 regex = re('(a|b)')
 print(regex.postfix)
 nfa = AFN(regex.postfix)
-# print(f"Initial state: {nfa.initial_state}\nFinal state: {nfa.final_state}")
+print(f"Initial state: {nfa.initial_state}\nFinal state: {nfa.final_state}")
 print(f'Result:\n')
+# TODO : uncomment this to print the table
 headers = ['State', 'Symbol', 'Next State']
 rows = []
-
-for i in range(len(nfa.result)):
-    for j in range(len(nfa.result[i])):
-        for k in range(len(nfa.result[i][j])):
-            state = nfa.result[i][j][k]['state']
-            symbol = nfa.result[i][j][k]['symbol']
-            next_state = ', '.join(nfa.result[i][j][k]['next_state'])
-            rows.append([state, symbol, next_state])
-
-# Use the tabulate module to create a formatted table
-table = tabulate(rows, headers=headers)
-
-# Print the table
-print(table)
-
-# dot = nfa.graphNFA(nfa.result[0])
-# dot.render('nfa', format='pdf', view=True)
+print(nfa.result[0])
+headers = nfa.result[0][0].keys()
+rows = [d.values() for d in nfa.result[0]]
+print(tabulate(rows, headers=headers))
+# Graph the NFA
+# TODO : uncomment this to print the NFA
+dot = nfa.graphNFA(nfa.result[0])
+dot.render('nfa', format='pdf', view=True)
