@@ -75,12 +75,14 @@ class AFN:
             nfa1 = [nfa1]
         if type(nfa2) is not list:
             nfa2 = [nfa2]
-
+        
+        
         # New initial state for the new nfa
         initial_state = {'state': 'S-1',
                          'symbol': 'ε',
                          'next_state': [nfa1[0]['state'], nfa2[0]['state']]
                          }
+        
         # Epsilon state nfa 1
         new_state_nfa1 = {'state': f'S{self.state_count}',
                           'symbol': 'ε',
@@ -111,12 +113,14 @@ class AFN:
 
         nfa1.append(new_state_nfa1)
         nfa2.append(new_state_nfa2)
+                
+        
         new_nfa.append(initial_state)
-        new_nfa.append(nfa2)
-        new_nfa.append(nfa1)
+        new_nfa.extend(nfa2)
+        new_nfa.extend(nfa1)
 
         new_nfa = self.normilizeNFADataType(new_nfa)
-
+        new_nfa = self.checkCoherence(new_nfa)
         return new_nfa
 
     # Method that creates the afn from a postfix expression
@@ -148,9 +152,6 @@ class AFN:
             # Kleene
             elif symbol == '*':
                 pass
-            # Epsilon
-            elif symbol == ' ε ':
-                break
             # Opcional
             elif symbol == '?':
                 break
@@ -202,8 +203,28 @@ class AFN:
             j['next_state'] = [f'S{counter+1}']
             counter += 1
 
+    def checkCoherence(self, nfa):
+        #removing the incoherence that the initial state has with itself
+        for i in nfa:
+            if i['state'] == 'S-1':
+                for j in i['next_state']:
+                    if j == 'S-1':
+                        i['next_state'].remove(j)
+                
+            
+        
+                                
+        return nfa
+                        
+                
+        
+            
+            
+        
+            
 
-regex = re('(a$b$c|d|e)')
+
+regex = re('(a$b$c$d$f|c|e)')
 print(regex.postfix)
 nfa = AFN(regex.postfix)
 print(f"Initial state: {nfa.initial_state}\nFinal state: {nfa.final_state}")
