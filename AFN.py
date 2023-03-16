@@ -67,7 +67,6 @@ class AFN:
         return new_afn
 
     # Method that applies the union operator to two afns
-
     def union(self, nfa2, nfa1):
         new_nfa = []
 
@@ -100,6 +99,8 @@ class AFN:
         self.state_count += 1
         self.next_state += 1
 
+        
+        
         nfa1[-1]['next_state'] = [new_state_nfa1['state']]
         nfa2[-1]['next_state'] = [new_state_nfa2['state']]
 
@@ -124,7 +125,6 @@ class AFN:
         return new_nfa
 
     # Method that creates the afn from a postfix expression
-
     def createAFN(self, postfix):
         stack = []
         for symbol in postfix:
@@ -151,12 +151,15 @@ class AFN:
                 stack.append(new_afn)
             # Kleene
             elif symbol == '*':
-                pass
+                
+                new_afn = self.kleene(stack)
+                stack.append(new_afn)
             # Opcional
             elif symbol == '?':
                 break
         return stack
 
+    # Function that graphs the nfa
     def graphNFA(self, nfa):
         dot = graphviz.Digraph(comment='NFA', graph_attr={'rankdir': 'LR'})
         try:
@@ -183,7 +186,8 @@ class AFN:
         dot.node(nfa[-1]['next_state'][-1], shape='doublecircle')
 
         return dot
-
+    
+    # Function that makes the nfa a single dimension list
     def normilizeNFADataType(self, nfa):
         dict_list = []
         for element in nfa:
@@ -196,6 +200,7 @@ class AFN:
 
         return dict_list
 
+    # Function that normilizes the names of the states in the concat function
     def normilizeConcatNames(self, nfa):
         counter = 0
         for j in nfa:
@@ -210,21 +215,39 @@ class AFN:
                 for j in i['next_state']:
                     if j == 'S-1':
                         i['next_state'].remove(j)
-                
-            
-        
                                 
         return nfa
                         
-                
+    def kleene(self, nfa):
         
+        
+        
+        new_final_state = {'state': 'Sn',
+                           'symbol': 'ε',
+                           'next_state': []
+                           }
+        
+        new_start_state = {'state': 'S-1',
+                           'symbol': 'ε',
+                           'next_state': [new_final_state['state']]
+                           }
+        
+        if nfa[0]['state'] == 'S-1':
+            new_start_state['state'] = 'S-2'
+        if nfa[-1]['state'] == 'Sn':
+            new_final_state['state'] = f'S{self.state_count}'
+        
+        nfa[-1]['next_state'].append(nfa[0]['state'])
+        
+        
+            
             
             
         
             
 
 
-regex = re('(a$b$c$d$f|c|e)')
+regex = re('(a|b)*')
 print(regex.postfix)
 nfa = AFN(regex.postfix)
 print(f"Initial state: {nfa.initial_state}\nFinal state: {nfa.final_state}")
