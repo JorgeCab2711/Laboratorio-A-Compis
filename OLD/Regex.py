@@ -78,11 +78,3 @@ class Regex:
                     raise ValueError("Error: There are two symbols together")
             except:
                 pass
-
-    def operatorsExist(self):
-        operators = ['+', '*', '|', '$', '?']
-        for i in self.infix:
-            if i in operators:
-                return True
-            else:
-                raise ValueError("Error: There are no operators in the expression or the operators are not in syntax.")
