@@ -1,8 +1,8 @@
 from State import NFAState
 from tabulate import tabulate
 from Regex import Regex
+from graphviz import Digraph
 
-from tabulate import tabulate
 
 class NFA:
     def __init__(self, postfix):
@@ -58,7 +58,6 @@ class NFA:
 
      
     def union(self, nfa1, nfa2):
-        print('Union')
         new_nfa = []
         
         neg_index = int(nfa1[0].name.replace('q', ''))-1
@@ -72,7 +71,8 @@ class NFA:
         self.state_count += 2
         
         # Add epsilon transitions from the new start state to the start states of the two NFAs
-        new_start_state.add_transition('ε', [nfa1[0].name, nfa2[0].name])
+        new_start_state.add_transition('ε')
+        new_start_state.transitions['ε'] = [nfa1[0].name, nfa2[0].name] 
         
         
         
@@ -92,9 +92,6 @@ class NFA:
         return new_nfa
         
     def kleene_star(self, nfa):
-        new_nfa = []
-        
-        print('Kleene star')
         new_nfa = []
         
         neg_index = int(nfa[0].name.replace('q', ''))-1
@@ -122,14 +119,8 @@ class NFA:
         new_nfa.append(new_final_state)
         
         
-        
-        
-        
-        
         return new_nfa  
         
-
-
     def Thompson(self, postfix_expression):
         stack = []
         for char in postfix_expression:
@@ -142,6 +133,7 @@ class NFA:
                 self.state_count = len(stack[0])
                 
             elif char == '$':
+                # Concatenation operation
                 nfa2 = stack.pop()
                 nfa1 = stack.pop()
                 nfa = self.concatenate(nfa1, nfa2)
@@ -153,6 +145,7 @@ class NFA:
                 nfa1 = stack.pop()
                 nfa = self.kleene_star(nfa1)
                 stack.append(nfa)
+                self.state_count = len(stack[0])
                 pass
             elif char == '?':
                 # Optional operation
@@ -160,24 +153,107 @@ class NFA:
             elif char.isalpha() or char.isnumeric():
                 # Create an NFA for the character
                 nfa = self.create_nfa_for_character(char)
+                
                 stack.append(nfa)
             
         self.initial_state = stack[0][0].name
         self.final_state = stack[0][-1].name
         # Return the final NFA
+        
         return stack
 
+    def gen_trans_matrix(self):
+        symbols = []
+        states = []
+        trans_matrix = {}
+        for state in self.result[0]:
+            for symbol in state.transitions:
+                if symbol not in symbols:
+                    symbols.append(symbol)
+            if state.name not in states:
+                states.append(state.name)
+        
+        # Create an empty transition matrix with headers
+        trans_matrix = {}
+        trans_matrix['symbols'] = symbols.copy() # copy symbols to avoid aliasing
+        for state in states:
+            trans_matrix[state] = ['']*len(symbols)
 
+        # Populate transition matrix with state transitions for each symbol
+        for state in self.result[0]:
+            for symbol in state.transitions:
+                # Get the index of the symbol in the matrix
+                symbol_idx = symbols.index(symbol)
+                # Get the name of the state that the transition leads to
+                next_state_name = state.transitions[symbol]
+                # Add the next state name to the matrix at the corresponding position
+                trans_matrix[state.name][symbol_idx] = next_state_name
+                
+        
+        # Convert transition matrix to list of lists
+        trans_matrix = [trans_matrix['symbols']] + [[k] + v for k, v in trans_matrix.items() if k != 'state']
+        trans_matrix = trans_matrix[1:]
+        return trans_matrix
     
 
-expression = '(a$b$c$d$f)*'
+def visualize_nfa(nfa):
+    # Create a new graph
+    graph = Digraph()
+    
+    graph.attr(rankdir='LR')
+    
+    # Set the default node attributes
+    graph.node_attr.update(shape='circle')
+    
+    # Add the nodes to the graph
+    for i, state in enumerate(nfa):
+        # If this is the final state, add a double circle around it
+        if i == len(nfa) - 1:
+            graph.node(state.name, shape='doublecircle')
+        else:
+            graph.node(state.name)
+            
+        # Add the transitions from this state to other states
+        for symbol, targets in state.transitions.items():
+            for target in targets:
+                # Use ε to represent an epsilon transition
+                label = 'ε' if symbol is None else symbol
+                
+                graph.edge(state.name, target, label=label)
+    
+    # Return the Graphviz object
+    return graph
+
+
+# Example of usage
+expression = '(a$b)*$c'
 postfix = Regex(expression).postfix
 print(f'Infix: {expression}\nPostfix: {postfix}')
 nfa = NFA(postfix)
 print('Initial state:', nfa.initial_state)
 print('Final state:', nfa.final_state)
-print('NFA Transition table:')
-nfa.showNFA(nfa.result)
-print(nfa.state_count)
+graph = visualize_nfa(nfa.result[0])
+graph.render('nfa.pdf', view=False)
+nfa.showNFA(nfa.result[0])
 
-    
+# # Transition matrix of the NFA where the first element of the list is the header (symbols)
+# trans_matrix  = nfa.gen_trans_matrix()
+
+# # Print transition matrix with tabulate
+# print(tabulate(trans_matrix, headers='firstrow'))
+
+# print(trans_matrix[1])
+# Example
+# for state in nfa.result[0]:
+#     for transition in state.transitions:
+#         if transition == key:
+#             print(state.name,'has a ','transition',state.transitions[transition], 'has key', key)
+
+# closures = {}
+# for state in nfa.result[0]:
+#     for transition in state.transitions:
+#         if transition == 'ε':
+#             closures[state.name] = state.transitions[transition]
+            
+# print(closures)
+

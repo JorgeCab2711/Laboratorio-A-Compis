@@ -3,7 +3,7 @@ class NFAState:
         self.name = name
         self.transitions = transitions if transitions is not None else {}
         
-    def add_transition(self, symbol, states=[]):
+    def add_transition(self, symbol, states=None):
         if symbol not in self.transitions:
             self.transitions[symbol] = []
         self.transitions[symbol].append(states)
