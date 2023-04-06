@@ -11,17 +11,23 @@ class NFA:
         self.state_count = 0
         self.result = self.Thompson(postfix)
         
-        
     def create_nfa_for_character(self, char):
         start_state = NFAState()
         end_state = NFAState()
         start_state.addName(f'q{self.state_count}')
         self.state_count += 1
         end_state.addName(f'q{self.state_count}')
-        start_state.transitions[char] = [end_state.name]
         self.state_count += 1
+        
+        if char == '$':
+            # Add epsilon transition from the start state to the end state
+            start_state.transitions['ε'] = [end_state.name]
+        else:
+            # Add transition for the current character
+            start_state.transitions[char] = [end_state.name]
+
         return [start_state, end_state]
-    
+
     def showNFA(self, nfa):
         try:
             type(nfa[0][0]) == NFAState
@@ -34,29 +40,27 @@ class NFA:
                 if i is not None:
                     print(i.name,'-->', i.transitions)
                 
-        
+                
     def concatenate(self, nfa1, nfa2):
-        # Merge the final state of the first NFA with the start state of the second NFA
+        # If nfa2 is empty, return nfa1 unchanged
         if len(nfa2) == 0:
-            # If nfa2 is empty, return nfa1 unchanged
             return nfa1
-        else:
-            nfa1[-1].transitions = nfa2[0].transitions
-            nfa2.pop(0)
-            nfa1.append(nfa2.pop())
-        
-        # Rearrage te names of states
+
+        # Merge the final state of the first NFA with the start state of the second NFA
+        nfa1[-1].transitions = nfa2[0].transitions
+        nfa2.pop(0)
+        nfa1.append(nfa2.pop())
+
+        # Rearrange the names of states
         for i in range(len(nfa1)):
             for symbol in nfa1[i].transitions:
                 nfa1[i].name = f'q{i}'
                 nfa1[i].transitions[symbol] = [f'q{i+1}']
-        
+
         nfa1[-1].name = f'q{len(nfa1)-1}'
-        
 
         return nfa1
 
-     
     def union(self, nfa1, nfa2):
         new_nfa = []
         
@@ -120,46 +124,47 @@ class NFA:
         
         
         return new_nfa  
-        
+     
     def Thompson(self, postfix_expression):
+        # Initialize empty stack
         stack = []
+
+        # Traverse postfix expression
         for char in postfix_expression:
-            if char in ['|','+']:
-                # Union operation
+
+            if char == '|':
+                # Pop two NFAs from stack, take union, and push result onto stack
                 nfa2 = stack.pop()
                 nfa1 = stack.pop()
                 nfa = self.union(nfa1, nfa2)
                 stack.append(nfa)
                 self.state_count = len(stack[0])
-                
+
+            elif char == '*':
+                # Pop single NFA from stack, apply Kleene star to it, and push result back onto stack
+                nfa = stack.pop()
+                nfa = self.kleene_star(nfa)
+                stack.append(nfa)
+                self.state_count = len(stack[0])
+
             elif char == '$':
-                # Concatenation operation
+                # Pop two NFAs from stack, concatenate them, and push result onto stack
                 nfa2 = stack.pop()
                 nfa1 = stack.pop()
                 nfa = self.concatenate(nfa1, nfa2)
                 stack.append(nfa)
                 self.state_count = len(stack[0])
-                
-            elif char == '*':
-                # Kleene star operation
-                nfa1 = stack.pop()
-                nfa = self.kleene_star(nfa1)
-                stack.append(nfa)
-                self.state_count = len(stack[0])
-                pass
-            elif char == '?':
-                # Optional operation
-                pass
+
             elif char.isalpha() or char.isnumeric():
                 # Create an NFA for the character
                 nfa = self.create_nfa_for_character(char)
-                
                 stack.append(nfa)
-            
+
+        # Set the initial and final states of the resulting NFA
         self.initial_state = stack[0][0].name
         self.final_state = stack[0][-1].name
-        # Return the final NFA
-        
+
+        # Return the NFA
         return stack
 
     def gen_trans_matrix(self):
@@ -195,65 +200,65 @@ class NFA:
         trans_matrix = trans_matrix[1:]
         return trans_matrix
     
-
-def visualize_nfa(nfa):
-    # Create a new graph
-    graph = Digraph()
-    
-    graph.attr(rankdir='LR')
-    
-    # Set the default node attributes
-    graph.node_attr.update(shape='circle')
-    
-    # Add the nodes to the graph
-    for i, state in enumerate(nfa):
-        # If this is the final state, add a double circle around it
-        if i == len(nfa) - 1:
-            graph.node(state.name, shape='doublecircle')
-        else:
-            graph.node(state.name)
-            
-        # Add the transitions from this state to other states
-        for symbol, targets in state.transitions.items():
-            for target in targets:
-                # Use ε to represent an epsilon transition
-                label = 'ε' if symbol is None else symbol
+    def visualize_nfa(self):
+        nfa = self.result[0]
+        # Create a new graph
+        graph = Digraph()
+        
+        graph.attr(rankdir='LR')
+        
+        # Set the default node attributes
+        graph.node_attr.update(shape='circle')
+        
+        # Add the nodes to the graph
+        for i, state in enumerate(nfa):
+            # If this is the final state, add a double circle around it
+            if i == len(nfa) - 1:
+                graph.node(state.name, shape='doublecircle')
+            else:
+                graph.node(state.name)
                 
-                graph.edge(state.name, target, label=label)
-    
-    # Return the Graphviz object
-    return graph
+            # Add the transitions from this state to other states
+            for symbol, targets in state.transitions.items():
+                for target in targets:
+                    # Use ε to represent an epsilon transition
+                    label = 'ε' if symbol is None else symbol
+                    
+                    graph.edge(state.name, target, label=label)
+        
+        # Return the Graphviz object
+        return graph
+
+
+    def god_func(self):
+        print(f'Initial State: {self.initial_state}\nFinal State: {self.final_state}\n\nNFA: ')
+        print(f'\n{self.showNFA(self.result[0])}\n')
+        graph = self.visualize_nfa()
+        graph.render('nfa.pdf', view=False)
+        return self.gen_trans_matrix()
 
 
 # Example of usage
-expression = '(a$b)*$c'
+expression = '(a|b)*'
 postfix = Regex(expression).postfix
 print(f'Infix: {expression}\nPostfix: {postfix}')
 nfa = NFA(postfix)
-print('Initial state:', nfa.initial_state)
-print('Final state:', nfa.final_state)
-graph = visualize_nfa(nfa.result[0])
-graph.render('nfa.pdf', view=False)
-nfa.showNFA(nfa.result[0])
+trans_matrix  = nfa.god_func()
 
-# # Transition matrix of the NFA where the first element of the list is the header (symbols)
-# trans_matrix  = nfa.gen_trans_matrix()
+# print('\nNFA to DFA\n')
 
+# last_nfa = nfa.result[0] 
 # # Print transition matrix with tabulate
 # print(tabulate(trans_matrix, headers='firstrow'))
 
-# print(trans_matrix[1])
-# Example
-# for state in nfa.result[0]:
-#     for transition in state.transitions:
-#         if transition == key:
-#             print(state.name,'has a ','transition',state.transitions[transition], 'has key', key)
 
-# closures = {}
-# for state in nfa.result[0]:
-#     for transition in state.transitions:
-#         if transition == 'ε':
-#             closures[state.name] = state.transitions[transition]
-            
-# print(closures)
+# DFA = [['state'] + [header for header in trans_matrix[0] if header != 'ε' and header != 'symbols']]
 
+# new = []
+
+# new.append(e_closures[0])
+
+# DFA.append(new)
+
+# for i in DFA:
+#     print(i)
