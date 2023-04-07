@@ -4,12 +4,13 @@ from Regex import Regex
 from graphviz import Digraph
 
 
-class NFA:
+class NFA_:
     def __init__(self, postfix):
         self.start_state = None
         self.final_state = None
         self.state_count = 0
         self.result = self.Thompson(postfix)
+        self.transmatrix = self.gen_trans_matrix()
         
     def create_nfa_for_character(self, char):
         start_state = NFAState()
@@ -242,23 +243,7 @@ class NFA:
 expression = '(a|b)*'
 postfix = Regex(expression).postfix
 print(f'Infix: {expression}\nPostfix: {postfix}')
-nfa = NFA(postfix)
+nfa = NFA_(postfix)
 trans_matrix  = nfa.god_func()
 
-# print('\nNFA to DFA\n')
-
-# last_nfa = nfa.result[0] 
-# # Print transition matrix with tabulate
-# print(tabulate(trans_matrix, headers='firstrow'))
-
-
-# DFA = [['state'] + [header for header in trans_matrix[0] if header != 'ε' and header != 'symbols']]
-
-# new = []
-
-# new.append(e_closures[0])
-
-# DFA.append(new)
-
-# for i in DFA:
-#     print(i)
+print(trans_matrix)
